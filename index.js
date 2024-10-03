@@ -24,6 +24,7 @@ async function loadGraticuleData() {
 
 async function createCharts() {
     try {
+        showLoader();
         console.log('Loading data...');
         const geoData = await loadAcidificationGeoData();
         const acidificationData = await loadAcidificationData();
@@ -209,13 +210,30 @@ async function createCharts() {
         const chartElement = document.getElementById('ph-deviation-map');
         if (!chartElement) {
             console.error('Chart element not found in the DOM');
+            hideLoader();
             return;
         }
         await vegaEmbed('#ph-deviation-map', phDeviationChart, { actions: false });
         await vegaEmbed('#time-series', timeSeriesChart, { actions: false });
         console.log('Chart rendered successfully');
+        hideLoader();
     } catch (error) {
         console.error('Error creating charts:', error);
+        hideLoader();
+    }
+}
+
+function showLoader() {
+    const loader = document.getElementById('loader');
+    if (loader) {
+        loader.style.display = 'flex';
+    }
+}
+
+function hideLoader() {
+    const loader = document.getElementById('loader');
+    if (loader) {
+        loader.style.display = 'none';
     }
 }
 
