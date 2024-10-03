@@ -22,17 +22,8 @@ async function loadGraticuleData() {
     return await response.json();
 }
 
-function chartDimensions() {
-    return {
-        width: Math.max(300, window.innerWidth * 0.88),
-        height: Math.max(200, window.innerWidth * 0.5)
-    }
-}
-
 async function createCharts() {
     try {
-        const { width, height } = chartDimensions();
-
         console.log('Loading data...');
         const geoData = await loadAcidificationGeoData();
         const acidificationData = await loadAcidificationData();
@@ -43,8 +34,8 @@ async function createCharts() {
 
         const baseChart = {
             $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
-            width: width,
-            height: height
+            width: 'container',
+            height: 400
         }
 
         const phDeviationChart = {
@@ -109,27 +100,110 @@ async function createCharts() {
                 {
                     calculate: 'datum[variable]',
                     as: 'selectedVariable'
-                }
+                },
             ],
-            encoding: {
-                x: {
-                    field: 'date',
-                    type: 'temporal',
-                    timeUnit: 'yearmonth', // Add time unit to ensure proper date parsing
-                    title: 'Date'
+            layer: [
+                {
+                    // Main chart layer
+                    mark: 'line',
+                    encoding: {
+                        x: {
+                            field: 'date',
+                            type: 'temporal',
+                            timeUnit: 'yearmonth',
+                            title: 'Date'
+                        },
+                        y: {
+                            field: 'selectedVariable',
+                            type: 'quantitative',
+                            title: { signal: 'variable' },
+                            scale: {
+                                zero: false,
+                                padding: 0.1
+                            }
+                        },
+                        tooltip: [
+                            {
+                                field: 'date',
+                                type: 'temporal',
+                                title: 'Date',
+                                format: '%b %d, %Y'
+                            },
+                            {
+                                field: 'selectedVariable',
+                                type: 'quantitative',
+                                title: 'Selected Variable',
+                                format: ',.4f'
+                            }
+                        ]
+                    }
                 },
-                y: {
-                    field: 'selectedVariable', // Default to pH_T
-                    type: 'quantitative',
-                    title: { signal: 'variable' }
+                {
+                    // World War I annotation
+                    mark: {
+                        type: 'rect',
+                        color: 'lightgray',
+                        opacity: 0.3
+                    },
+                    data: { values: [{ start: '1914-07-28', end: '1918-11-11' }] },
+                    encoding: {
+                        x: { field: 'start', type: 'temporal' },
+                        x2: { field: 'end', type: 'temporal' }
+                    }
                 },
-                tooltip: [
-                    { field: 'date', type: 'temporal', title: 'Date' },
-                    { field: 'selectedVariable', type: 'quantitative', title: { expr: "params.variable" } }
-                ]
-            }
+                {
+                    // World War I text
+                    mark: { type: 'text', align: 'center', baseline: 'top', dy: 5 },
+                    data: { values: [{ date: '1916-07-01', text: 'World War I' }] },
+                    encoding: {
+                        x: { field: 'date', type: 'temporal', timeUnit: 'yearmonth' },
+                        y: { value: 0 },
+                        text: { field: 'text' }
+                    }
+                },
+                {
+                    // Great Depression annotation
+                    mark: {
+                        type: 'rule',
+                        color: 'gray',
+                        strokeWidth: 1,
+                        strokeDash: [4, 4]
+                    },
+                    data: { values: [{ date: '1929-10-29' }] },
+                    encoding: {
+                        x: { field: 'date', type: 'temporal', timeUnit: 'yearmonth' }
+                    }
+                },
+                {
+                    // Great Depression text
+                    mark: { type: 'text', align: 'left', baseline: 'middle', dx: 5 },
+                    data: { values: [{ date: '1929-10-29', text: 'Great Depression' }] },
+                    encoding: {
+                        x: { field: 'date', type: 'temporal', timeUnit: 'yearmonth' },
+                        y: { value: 20 },
+                        text: { field: 'text' }
+                    }
+                },
+                {
+                    // Keeling Curve annotation
+                    mark: { type: 'rule', color: 'green', },
+                    data: { values: [{ date: '1958-03-01' }] },
+                    encoding: {
+                        x: { field: 'date', type: 'temporal', timeUnit: 'yearmonth' }
+                    }
+                },
+                {
+                    // Keeling Curve text
+                    mark: { type: 'text', align: 'left', baseline: 'middle', dx: 5 },
+                    data: { values: [{ date: '1958-03-01', text: 'Keeling Curve measurements begin' }] },
+                    encoding: {
+                        x: { field: 'date', type: 'temporal', timeUnit: 'yearmonth' },
+                        y: { value: 20 },
+                        text: { field: 'text' }
+                    }
+                }
+            ]
         };
-
 
         console.log('Rendering chart...');
         const chartElement = document.getElementById('ph-deviation-map');
@@ -137,8 +211,8 @@ async function createCharts() {
             console.error('Chart element not found in the DOM');
             return;
         }
-        await vegaEmbed('#ph-deviation-map', phDeviationChart);
-        await vegaEmbed('#time-series', timeSeriesChart);
+        await vegaEmbed('#ph-deviation-map', phDeviationChart, { actions: false });
+        await vegaEmbed('#time-series', timeSeriesChart, { actions: false });
         console.log('Chart rendered successfully');
     } catch (error) {
         console.error('Error creating charts:', error);
@@ -146,4 +220,3 @@ async function createCharts() {
 }
 
 document.addEventListener('DOMContentLoaded', createCharts);
-window.addEventListener('resize', createCharts);
